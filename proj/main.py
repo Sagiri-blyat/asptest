@@ -579,7 +579,8 @@ def login():
         statement = text('SELECT * FROM users WHERE email ="' + email + '" AND password ="' + password + '"')
         result = db.engine.execute(statement).fetchone()
         if result == None:
-            statement2 = text('SELECT * FROM users WHERE email ="' + email + '"')
+            #statement2 = text('SELECT * FROM users WHERE email ="' + email + '"')
+            statement2 = text('SELECT * FROM users WHERE email ="{}"'.format(email))
             result2 = db.engine.execute(statement2).fetchone()
             print(result2)
             print("AHhhhhhhhhhhhh")
