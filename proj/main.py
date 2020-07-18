@@ -13,7 +13,7 @@ with warnings.catch_warnings():
         from flask_marshmallow import Marshmallow
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token
 from flask_mail import Mail, Message
-from Forms import RegistrationForm,LoginForm
+from Forms import RegistrationForm,LoginForm, ResetForm
 from flask_autoindex import AutoIndex
 from flask import json
 from werkzeug.exceptions import HTTPException
@@ -216,7 +216,7 @@ def db_seed():
     db.session.add(review2)
     db.session.add(review3)
     # password = 'P@ssw0rd'
-                     # password=generate_password_hash(password,method='sha256'))
+    # password=generate_password_hash(password,method='sha256'))
     admin = User(first_name='Null',
                  last_name='Null',
                  email='admin@toilet.org',
@@ -257,7 +257,7 @@ def page_not_found(error):
     <h3>%s Not found</h3>''' % (urllib.parse.unquote(request.url))
     # print(request.url)
     # template = '''<h2>Hello {}!</h2>'''.format(urllib.parse.unquote(request.url))
-    return render_template_string(template, dir=dir, help=help, locals=locals, ), 404
+    return render_template_string(template, dir=dir, help=help, locals=locals), 404
 
 
 
@@ -489,6 +489,7 @@ def register():
             first_name = request.form['first_name']
             last_name = request.form['last_name']
             password = request.form['password']
+            email = request.form['email']
             # print("Password:",password) ##prevention
             # if len(password) < 8:
             #     msg = 'Error: Password is too short!'
@@ -507,8 +508,8 @@ def register():
             #     return render_template('register.html', form=form, msg=msg)
             # # strength = password_check(password)
             # # print(strength)
-            session['user'] = request.form['email']
-            print("Test session:" ,session['user'])
+            # session['user'] = request.form['email']
+            # print("Test session:" ,session['user'])
             user = User(first_name=first_name,
                         last_name=last_name,
                         email=email,
@@ -518,7 +519,6 @@ def register():
             db.session.add(user)
             db.session.commit()
             #
-            # # return jsonify(message='User created yay'), 201
             print("User created")
             return redirect(url_for('login'))
     return render_template('register.html', form=form)
@@ -527,13 +527,15 @@ def register():
 def admin_info():
      if g.user:
         if 'user' in session:
-            # if session['user'] == 'admin@toilet.org':
-            print("ADMIN PAGE")
-            user_list = User.query.all()
-            result = users_schema.dump(user_list)
-            return jsonify(result)
-            ##insert admin page here
-            #follow this format for all admin def
+                #only admin can access
+            if session['is_authenticated'] == 'True':
+                 ##insert admin page here
+                #follow this format for all admin def
+                print("ADMIN PAGE")
+                user_list = User.query.all()
+                result = users_schema.dump(user_list)
+                return jsonify(result)
+
      else:
          abort(403)
                 #for admin access only
@@ -579,8 +581,7 @@ def login():
         statement = text('SELECT * FROM users WHERE email ="' + email + '" AND password ="' + password + '"')
         result = db.engine.execute(statement).fetchone()
         if result == None:
-            #statement2 = text('SELECT * FROM users WHERE email ="' + email + '"')
-            statement2 = text('SELECT * FROM users WHERE email ="{}"'.format(email))
+            statement2 = text('SELECT * FROM users WHERE email ="' + email + '"')
             result2 = db.engine.execute(statement2).fetchone()
             print(result2)
             print("AHhhhhhhhhhhhh")
@@ -612,48 +613,45 @@ def login():
             print(session['id'])
             print(session['is_authenticated'])
             return resp
-        # # test = User.query.filter_by(email=email).first()
-        # test = User.query.filter_by(email=email, password=password).first()
-        # if test:
-                # # test2 = User.query.filter_by(password=password).first()
-                # # if test2:
-                # # return redirect(url_for('store'))
-                # # else:
-                # #     msg = 'Error: Wrong Password!'
-                # #     return render_template("login.html", form=form, msg=msg)
 
-        # # if test and check_password_hash(test.password, password):
-        #      if email == 'admin@toilet.org':
-        #           session['user'] = 'admin@toilet.org'
-        # #         access_token = create_access_token(identity=email)
-        # #         print("Access token is",access_token)
-        # #         print("Admin login success")
-        # #         session.permanent = True
-        #           return redirect(url_for('admin'))
-        #      else:
-        #           session['user'] = request.form['email']
-        # #         access_token = create_access_token(identity=email)
-        # #         print("Access token is",access_token)
-        #           print("User login success")
-                # # session.permanent = True
-                #   return redirect(url_for('store'))
-        # else:
-        #     msg = 'Error: Email does not exist!'
-        #     abort(401)
     return render_template("login.html", form=form, msg=msg)
         # return jsonify(message='Bad email or password'), 401
 
-@app.route('/retrieve_password/<string:email>', methods=['GET'])
-def retrieve_password(email: str):
-    user = User.query.filter_by(email=email).first()
-    if user:
-        msg = Message("your API password is" + user.password,
-                      sender="admin@aspj-api.com",
-                      recipients=[email])
-        mail.send(msg)
-        return jsonify(message='Password sent to' + email)
-    else:
-        return jsonify(message="That email does not exist"), 401
+#below only works on pythonanywhere!
+#dont delete zz
+@app.route('/forgotpassword', methods=['GET','POST'])
+def forgot():
+    form = ResetForm(request.form)
+    msg = ''
+    msg1 = ''
+    if request.method == "POST" and form.validate():
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        if user:
+                msg1 = 'Email has been sent!' #bad error message
+#                 sent = MIMEText('Your API password is ' + user.password)
+#                 sent['Subject'] = "Retrieve Password "
+#                 sent['From'] = 'Toilet Admin <admin@toilet.org>'
+#                 sent['To'] = 'User <readan999@gmail.com>'
+#
+#                 server = smtplib.SMTP("smtp.gmail.com:587")
+#                 server.starttls()
+#                 server.login("readan999@gmail.com", "wrsshovpluevyelj")
+#
+#
+#                 # sent = Message("your API password is " + user.password,
+#                 #       sender="admin@aspj-api.com",
+#                 #       recipients=[email])
+#                 # mail.send(sent)
+#                 # server.sendmail("admin@toilet.org", email, sent.as_string())
+#                 server.sendmail("admin@toilet.org", "readan999@gmail.com", sent.as_string())
+#                 server.quit()
+                return render_template("forgot.html",form=form, msg=msg1)
+#
+        else:
+             msg = 'Email does not exist!'
+             return render_template("forgot.html", form=form, msg=msg)
+    return render_template('forgot.html', form=form)
 
 
 @app.route('/account/<int:id>',methods=['GET', 'POST','PUT'])
@@ -678,6 +676,22 @@ def account(id: int):
     # return render_template('account.html',id = session['id'])
     # return redirect(url_for('login'))
 
+@app.route('/cust_details/<int:cust_id>', methods=['GET', 'POST'])
+def cust_details(cust_id: int):
+    statement = text('SELECT * FROM users WHERE id =' + str(cust_id))
+    result = db.engine.execute(statement).fetchone()
+    if result == None:
+        abort(401)
+    else:
+        print(result)
+        id = result[0]
+        name = result[1] + result[2]
+        email = result[3]
+        password = result[4]
+        return render_template('info.html',id=id,name=name,email=email,password=password)
+@app.errorhandler(401)
+def page_not_foundd(e):
+    return redirect('/')
 
 if __name__ == '__main__':
         app.run(debug=True)
