@@ -8,21 +8,23 @@
     <li class="nav-item">
       <a class="nav-link" style="" href="/">Store</a>
     </li>
-<!--    {% if session['user'] == 'admin@toilet.org' %}-->
+    {% if session['user'] == 'admin@toilet.org' %}
     <li class="nav-item">
       <a class="nav-link" href="/admin_info">admin info</a>
     </li>
-<!--    {% else %}-->
+    {% else %}
+    {% if session['user'] %}
     <li class="nav-item">
-      <a class="nav-link" style="" href="/info">info</a>
+      <a class="nav-link" style="" href="/cust_details/{{ session['id'] }}">info</a>
     </li>
-<!--    {% endif %}-->
+    {% endif %}
     <li class="nav-item">
       <a class="nav-link" href="/cart">cart</a>
     </li>
     <li class="nav-item">
       <a class="nav-link" href="/orders">orders</a>
     </li>
+    {% endif %}
     <li class="nav-item">
     {% if session['user'] %}
     <a class="nav-link" style="" href="/logout">logout</a>

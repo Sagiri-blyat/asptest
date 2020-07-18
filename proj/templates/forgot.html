@@ -3119,10 +3119,10 @@ span.discount{color: red}
 
 <div class="grid">
 <br>
-		<h1 style="font-weight: bold; font-size: 36px;">Login</h1>
+		<h1 style="font-weight: bold; font-size: 36px;">Retrieve Password</h1>
 		<br>
         <br>
-
+		<h6>To retrieve your password, enter your email below.</h6>
 <form method=post class="form login">
 <dl>
 
@@ -3132,32 +3132,16 @@ span.discount{color: red}
  {{(form.email)}}
 </div>
 
-    <div class="form__field">
-  <label1 for="password"><i class="fas fa-lock"></i><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#lock"></use>
-      <span class="hidden"></span>Password:</label1>
-       {{(form.password)}}
-</div>
-
-
 
   </dl>
     <p style="font-weight: bold; color: red;"> {{msg}} </p>
+	    <p style="font-weight: bold; color: black;"> {{msg1}} </p>
 
 
-             {% with messages = get_flashed_messages() %}
-          {% if messages %}
-              {% for i in messages %}
-  <!--                <script>alert('{{ i }}');</script>-->
-    <span style="color:red;">{{ i }}</span>
-    <br>
-              {% endfor %}
-          {% endif %}
-           {% endwith %}
-    <input type='submit' value='Login' id="registerbtn">
+    <input type='submit' value='Submit' id="registerbtn">
 </form>
   <p> {{error}} </p>
-    <p class="text--center">Not a member? <a href="/register">Sign up</a> </p>
-    <p class="text--center">Forgot? <a href="/forgotpassword">Retrieve Password</a> </p>
+
 
 
 </div>
@@ -3171,4 +3155,3 @@ span.discount{color: red}
 
 </body>
 </html>
-
