@@ -270,15 +270,29 @@ def store():
 
     if request.method == 'POST':
         if 'user' in session:
-            content = request.form['comment']
-            item_id = request.form.get("item_idd","")
-            statement = text('INSERT INTO reviews ("item_id","username","content") VALUES ("'+item_id+'","'+request.cookies.get('username')+'","'+content+'")')
-            db.engine.execute(statement)
+            contentt = request.form['comment']
+            item_idd = request.form.get("item_idd","")
+            # statement = text('INSERT INTO reviews ("item_id","username","content") VALUES ("'+item_id+'","'+request.cookies.get('username')+'","'+content+'")')
+            # db.engine.execute(statement)
+
+            #fix
+            #first fix
+            blacklist=[',','<','>','"',"'",'=']
+            for i in contentt:
+                if i in blacklist:
+                    flash('invalid review, review not submitted')
+            #second fix
+            review = Reviews(item_id=item_idd,
+                 username=request.cookies.get('username'),
+                 content=contentt)
+            db.session.add(review)
+            db.session.commit()
+            #endfix
             return redirect('/')
         else:
-            flash('PLease sign in first')
+            redirect(url_for('login'))
     search_query = request.args.get('q')
-
+    print("search query:", search_query)
     items_list = []
     get_all_items = text('SELECT * FROM items')
     result = db.engine.execute(get_all_items).fetchall()
@@ -344,88 +358,88 @@ def deleteItem(item_id: int):
         return jsonify(message="That item does not exist"), 404
 
 #
-@app.route('/cart')
-def cart():
-    cart_list = []
-    user_id = 'A163216549'
-    a = ('SELECT * FROM ' + user_id)
-    print(a)
-    get_all_items = text(a)
-    result = db.engine.execute(get_all_items).fetchall()
-    for item in result:
-        print(item)
-        cart_list.append(item)
-        # print(item['item_id'])
-    # print(cart_list)
+# @app.route('/cart')
+# def cart():
+#     cart_list = []
+#     user_id = 'A163216549'
+#     a = ('SELECT * FROM ' + user_id)
+#     print(a)
+#     get_all_items = text(a)
+#     result = db.engine.execute(get_all_items).fetchall()
+#     for item in result:
+#         print(item)
+#         cart_list.append(item)
+#         # print(item['item_id'])
+#     # print(cart_list)
+#
+#     total = 0
+#     for item in cart_list:
+#         total += item['item_price']
+#     return render_template('cart.html', cart_list=cart_list, total=total)
 
-    total = 0
-    for item in cart_list:
-        total += item['item_price']
-    return render_template('cart.html', cart_list=cart_list, total=total)
-
-
-@app.route('/checkOut', methods=["GET", "POST"])
-def checkOut():
-    user_id = 'A163216549'
-    checkOutCart = []
-    a = ('SELECT * FROM ' + user_id)
-    get_all_items = text(a)
-    result = db.engine.execute(get_all_items).fetchall()
-    for item in result:
-        print(item)
-        checkOutCart.append(item)
-
-    total = 0
-    for item in checkOutCart:
-        total += item['item_price']
-
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        address = request.form['address']
-        city = request.form['city']
-        state = request.form['state']
-        zip = request.form['zip']
-        creditName = request.form['cardname']
-        cardNum = request.form['cardnumber']  # 4539579803742677850
-        expireMonth = request.form['expmonth']
-        expireYear = request.form['expyear']
-        cvv = request.form['cvv']
-        all = UserPayment.query.all()
-        all_payment = payments_schema.dump(all)
-        exist = False
-        for a in all_payment:
-            if a['user_id'] == user_id:
-                exist = True
-        if exist:
-            pass
-        else:
-            paymentInfo = UserPayment(user_id=user_id, name=name, email=email, address=address, city=city,
-                                      state=state,
-                                      zip=zip, creditName=creditName, cardNum=cardNum, expireMonth=expireMonth,
-                                      expireYear=expireYear, cvv=cvv)
-            db.session.add(paymentInfo)
-            db.session.commit()
-
-        for item in result:
-            print(item)
-            if item:
-                today = date.today()
-                order = UserOrder(user_id=user_id, order_item_id=random.randint(99999999999999, 999999999999999),
-                                  item_image=item['item_image'], item_name=item['item_name'],
-                                  item_desc=item['item_desc'], item_price=item['item_price'],
-                                  item_quantity=item['item_stock'], date=today)
-                db_create()
-                db.session.add(order)
-                db.session.commit()
-        print(name, email, address, city, state, zip, creditName, cardNum, expireMonth, expireYear, cvv)
-        items = UserCart.query.all()
-        for i in items:
-            db.session.delete(i)
-        db.session.commit()
-        return redirect('/')
-
-    return render_template('checkOut.html', user_id=user_id, checkOutCart=checkOutCart, total=total)
+#
+# @app.route('/checkOut', methods=["GET", "POST"])
+# def checkOut():
+#     user_id = 'A163216549'
+#     checkOutCart = []
+#     a = ('SELECT * FROM ' + user_id)
+#     get_all_items = text(a)
+#     result = db.engine.execute(get_all_items).fetchall()
+#     for item in result:
+#         print(item)
+#         checkOutCart.append(item)
+#
+#     total = 0
+#     for item in checkOutCart:
+#         total += item['item_price']
+#
+#     if request.method == 'POST':
+#         name = request.form['name']
+#         email = request.form['email']
+#         address = request.form['address']
+#         city = request.form['city']
+#         state = request.form['state']
+#         zip = request.form['zip']
+#         creditName = request.form['cardname']
+#         cardNum = request.form['cardnumber']  # 4539579803742677850
+#         expireMonth = request.form['expmonth']
+#         expireYear = request.form['expyear']
+#         cvv = request.form['cvv']
+#         all = UserPayment.query.all()
+#         all_payment = payments_schema.dump(all)
+#         exist = False
+#         for a in all_payment:
+#             if a['user_id'] == user_id:
+#                 exist = True
+#         if exist:
+#             pass
+#         else:
+#             paymentInfo = UserPayment(user_id=user_id, name=name, email=email, address=address, city=city,
+#                                       state=state,
+#                                       zip=zip, creditName=creditName, cardNum=cardNum, expireMonth=expireMonth,
+#                                       expireYear=expireYear, cvv=cvv)
+#             db.session.add(paymentInfo)
+#             db.session.commit()
+#
+#         for item in result:
+#             print(item)
+#             if item:
+#                 today = date.today()
+#                 order = UserOrder(user_id=user_id, order_item_id=3,
+#                                   item_image=item['item_image'], item_name=item['item_name'],
+#                                   item_desc=item['item_desc'], item_price=item['item_price'],
+#                                   item_quantity=item['item_stock'], date=today)
+#                 db_create()
+#                 db.session.add(order)
+#                 db.session.commit()
+#         print(name, email, address, city, state, zip, creditName, cardNum, expireMonth, expireYear, cvv)
+#         items = UserCart.query.all()
+#         for i in items:
+#             db.session.delete(i)
+#         db.session.commit()
+#         return redirect('/')
+#
+#     return render_template('checkOut.html', user_id=user_id, checkOutCart=checkOutCart, total=total)
 
 @app.route('/orders')
 def orders():
@@ -445,13 +459,13 @@ def info():
     return render_template('info.html')
 
 
-@app.before_request
-def before_request():
-    g.user = None
-    if 'user' in session:
-        g.user = session['user']
-        if 'is_authenticated' in session:
-            g.role = session['is_authenticated']
+# @app.before_request
+# def before_request():
+#     g.user = None
+#     if 'user' in session:
+#         g.user = session['user']
+#         if 'is_authenticated' in session:
+#             g.role = session['is_authenticated']
 
 @app.route("/logout")
 def logout():
@@ -525,19 +539,20 @@ def register():
 
 @app.route('/admin_info', methods=['GET'])
 def admin_info():
-     if g.user:
-        if 'user' in session:
-                #only admin can access
-            if session['is_authenticated'] == 'True':
-                 ##insert admin page here
-                #follow this format for all admin def
-                print("ADMIN PAGE")
-                user_list = User.query.all()
-                result = users_schema.dump(user_list)
-                return jsonify(result)
-
-     else:
-         abort(403)
+     # if g.user:
+    if 'user' in session:
+            #only admin can access
+        if session['is_authenticated'] == 'True':
+             ##insert admin page here
+            #follow this format for all admin def
+            print("ADMIN PAGE")
+            user_list = User.query.all()
+            result = users_schema.dump(user_list)
+            return jsonify(result)
+        else:
+            abort(403)
+    else:
+        abort(403)
                 #for admin access only
 
 @app.route('/admin')
@@ -577,12 +592,26 @@ def login():
         password = request.form['password']
         print(email)
         print(password)
-
-        statement = text('SELECT * FROM users WHERE email ="' + email + '" AND password ="' + password + '"')
-        result = db.engine.execute(statement).fetchone()
+        # fix
+        #1st method for login
+        statement = text('SELECT * FROM users WHERE email = :a AND password = :b')
+        result = db.engine.execute(statement,a=str(email),b=str(password)).fetchone()
+        #2nd method
+        # blacklist=[',','<','>','"',"'",'=']
+        # for i in email:
+        #     if i in blacklist:
+        #         msg = 'Error: invalid email/password'
+        #         return render_template("login.html", form=form, msg=msg),401
+        # for o in password:
+        #     if o in blacklist:
+        #         msg = 'Error: invalid email/password'
+        #         return render_template("login.html", form=form, msg=msg),401
+        # statement = text('SELECT * FROM users WHERE email ="' + email + '" AND password ="' + password + '"')
+        # result = db.engine.execute(statement).fetchone()
+        # endfix
         if result == None:
-            statement2 = text('SELECT * FROM users WHERE email ="' + email + '"')
-            result2 = db.engine.execute(statement2).fetchone()
+            statement2 = text('SELECT * FROM users WHERE email =:e')
+            result2 = db.engine.execute(statement2,e=str(email)).fetchone()
             print(result2)
             print("AHhhhhhhhhhhhh")
             print(email)
@@ -657,8 +686,8 @@ def forgot():
 @app.route('/account/<int:id>',methods=['GET', 'POST','PUT'])
 def account(id: int):
     id = str(id)
-    statement = text('SELECT * FROM users WHERE id ="' + id + '"')
-    result = db.engine.execute(statement).fetchone()
+    statement = text('SELECT * FROM users WHERE id =:i')
+    result = db.engine.execute(statement,i = id).fetchone()
     print(result.email)
     print(result[0])
 
@@ -678,10 +707,11 @@ def account(id: int):
 
 @app.route('/cust_details/<int:cust_id>', methods=['GET', 'POST'])
 def cust_details(cust_id: int):
-    statement = text('SELECT * FROM users WHERE id =' + str(cust_id))
-    result = db.engine.execute(statement).fetchone()
+    statement = text('SELECT * FROM users WHERE id =:c')
+    result = db.engine.execute(statement,c=str(cust_id)).fetchone()
     if result == None:
         abort(401)
+        # return redirect('/')
     else:
         print(result)
         id = result[0]
