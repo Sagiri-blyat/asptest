@@ -4,7 +4,6 @@ import warnings
 from datetime import date
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, Float, TEXT,DECIMAL,text, DATE
-from ftplib import FTP
 import os
 import os.path
 import random
@@ -17,6 +16,8 @@ from Forms import RegistrationForm,LoginForm, ResetForm
 from flask_autoindex import AutoIndex
 from flask import json
 from werkzeug.exceptions import HTTPException
+import functools
+from datetime import timedelta
 
 
 
@@ -25,22 +26,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'toiletshop.db')
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'toiletshop.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/myaspj3/mysite/toiletshop.db'
 # app.config['JWT_SECRET_KEY'] = 'super-secret' #change
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-#PREVENTION
-# app.config['MAIL_SERVER']='smtp.mailtrap.io'
-# app.config['MAIL_PORT'] = 2525
-# app.config['MAIL_USERNAME'] = '16427074913315'
-# app.config['MAIL_PASSWORD'] = '11a95aaee3a6f5'
-# app.config['MAIL_USE_TLS'] = True
-# app.config['MAIL_USE_SSL'] = False
-# app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=5)
+app.config['PERMANENT_SESSION_LIFETIME'] =  timedelta(minutes=5)
 import re
-# SESSION_COOKIE_SECURE = True use for https
-# app.config['SESSION_COOKIE_SECURE']=True, cant log in if thru http
-# app.config['SESSION_COOKIE_HTTPONLY']=True,
-# app.config['SESSION_COOKIE_SAMESITE']='Lax'
+SESSION_COOKIE_SECURE = True
+# use for https
+app.config['SESSION_COOKIE_SECURE']=True
+#cant log in if thru http
+app.config['SESSION_COOKIE_HTTPONLY']=True,
+app.config['SESSION_COOKIE_SAMESITE']='Lax'
 # #
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
@@ -222,6 +219,7 @@ def db_seed():
                  email='admin@admin.admin',
                  password='admin',
                  is_authenticated='True')
+                 #  email='admin@toilet.org',
                  # password=generate_password_hash(password,method='sha256'))
 
     user = User(first_name='user',
@@ -239,14 +237,7 @@ def db_seed():
 # db_seed()
 # db_drop()
 
-files_index = AutoIndex(app, browse_root=os.path.curdir , add_url_rules=False)
 
-
-# Custom indexing
-@app.route('/dir')
-@app.route('/dir/<path:path>')
-def autoindex(path='.'):
-    return files_index.render_autoindex(path)
 
 
 @app.errorhandler(404)
@@ -254,11 +245,14 @@ def page_not_found(error):
     print(basedir)
     template = '''
     <h1>That page doesn't exist.</h1>
-    <h3>%s Not found</h3>''' % (urllib.parse.unquote(request.url))
+    <h3>%s Not found</h3>''' #% (urllib.parse.unquote(request.url))
     # print(request.url)
     # template = '''<h2>Hello {}!</h2>'''.format(urllib.parse.unquote(request.url))
     return render_template_string(template, dir=dir, help=help, locals=locals), 404
 
+@app.errorhandler(401)
+def page_not_foundd(e):
+    return redirect('/')
 
 
 
@@ -274,13 +268,13 @@ def store():
             item_idd = request.form.get("item_idd","")
             # statement = text('INSERT INTO reviews ("item_id","username","content") VALUES ("'+item_id+'","'+request.cookies.get('username')+'","'+content+'")')
             # db.engine.execute(statement)
-
             #fix
             #first fix
-            blacklist=[',','<','>','"',"'",'=']
-            for i in contentt:
-                if i in blacklist:
-                    flash('invalid review, review not submitted')
+            # blacklist=[',','<','>','"',"'",'=']
+            # for i in contentt:
+            #     if i in blacklist:
+            #         flash('invalid review, review not submitted')
+            #         return redirect('/')
             #second fix
             review = Reviews(item_id=item_idd,
                  username=request.cookies.get('username'),
@@ -292,7 +286,7 @@ def store():
         else:
             redirect(url_for('login'))
     search_query = request.args.get('q')
-    print("search query:", search_query)
+
     items_list = []
     get_all_items = text('SELECT * FROM items')
     result = db.engine.execute(get_all_items).fetchall()
@@ -317,47 +311,47 @@ def store():
                        search_query=search_query, review_list=review_list)
 
 
-@app.route('/addItem/<int:item_id>', methods=['GET', 'POST'])
-def addItem(item_id: int):
-    db_create()
-    user_id = text('A163216549')
-    item = UserCart.query.filter_by(item_id=item_id).first()
-    if item:
-        return jsonify("There is an item in your cart already"), 409
-    else:
-        get_all_items = text('SELECT * FROM items')
-        result = db.engine.execute(get_all_items).fetchall()
-        for i in result:
-            if i[0] == item_id:
-                item_id = i[0]
-                item_image = i[1]
-                item_name = i[2]
-                item_desc = i[3]
-                item_price = i[4]
-                item_stock = 1
-                usercart = UserCart(item_id=item_id, item_image=item_image, item_name=item_name,
-                                    item_desc=item_desc,
-                                    item_price=item_price, item_stock=item_stock)
-                db_create()
-                db.session.add(usercart)
-                db.session.commit()
-                return redirect('/')
-            else:
-                pass
+# @app.route('/addItem/<int:item_id>', methods=['GET', 'POST'])
+# def addItem(item_id: int):
+#     # db_create()
+#     user_id = text('A163216549')
+#     item = UserCart.query.filter_by(item_id=item_id).first()
+#     if item:
+#         return jsonify("There is an item in your cart already"), 409
+#     else:
+#         get_all_items = text('SELECT * FROM items')
+#         result = db.engine.execute(get_all_items).fetchall()
+#         for i in result:
+#             if i[0] == item_id:
+#                 item_id = i[0]
+#                 item_image = i[1]
+#                 item_name = i[2]
+#                 item_desc = i[3]
+#                 item_price = i[4]
+#                 item_stock = 1
+#                 usercart = UserCart(item_id=item_id, item_image=item_image, item_name=item_name,
+#                                     item_desc=item_desc,
+#                                     item_price=item_price, item_stock=item_stock)
+#                 db_create()
+#                 db.session.add(usercart)
+#                 db.session.commit()
+#                 return redirect('/')
+#             else:
+#                 pass
 
 
-@app.route('/deleteItem/<int:item_id>', methods=['DELETE', 'POST'])
-def deleteItem(item_id: int):
-    item = UserCart.query.filter_by(item_id=item_id).first()
-    if item:
-        print(item)
-        db.session.delete(item)
-        db.session.commit()
-        return render_template('cart.html')
-    else:
-        return jsonify(message="That item does not exist"), 404
+# @app.route('/deleteItem/<int:item_id>', methods=['DELETE', 'POST'])
+# def deleteItem(item_id: int):
+#     item = UserCart.query.filter_by(item_id=item_id).first()
+#     if item:
+#         print(item)
+#         db.session.delete(item)
+#         db.session.commit()
+#         return render_template('cart.html')
+#     else:
+#         return jsonify(message="That item does not exist"), 404
 
-#
+# #
 # @app.route('/cart')
 # def cart():
 #     cart_list = []
@@ -371,13 +365,13 @@ def deleteItem(item_id: int):
 #         cart_list.append(item)
 #         # print(item['item_id'])
 #     # print(cart_list)
-#
+
 #     total = 0
 #     for item in cart_list:
 #         total += item['item_price']
 #     return render_template('cart.html', cart_list=cart_list, total=total)
 
-#
+
 # @app.route('/checkOut', methods=["GET", "POST"])
 # def checkOut():
 #     user_id = 'A163216549'
@@ -388,11 +382,11 @@ def deleteItem(item_id: int):
 #     for item in result:
 #         print(item)
 #         checkOutCart.append(item)
-#
+
 #     total = 0
 #     for item in checkOutCart:
 #         total += item['item_price']
-#
+
 #     if request.method == 'POST':
 #         name = request.form['name']
 #         email = request.form['email']
@@ -420,16 +414,16 @@ def deleteItem(item_id: int):
 #                                       expireYear=expireYear, cvv=cvv)
 #             db.session.add(paymentInfo)
 #             db.session.commit()
-#
+
 #         for item in result:
 #             print(item)
 #             if item:
 #                 today = date.today()
-#                 order = UserOrder(user_id=user_id, order_item_id=3,
+#                 order = UserOrder(user_id=user_id, order_item_id=random.randint(99999999999999, 999999999999999),
 #                                   item_image=item['item_image'], item_name=item['item_name'],
 #                                   item_desc=item['item_desc'], item_price=item['item_price'],
 #                                   item_quantity=item['item_stock'], date=today)
-#                 db_create()
+#                 # db_create()
 #                 db.session.add(order)
 #                 db.session.commit()
 #         print(name, email, address, city, state, zip, creditName, cardNum, expireMonth, expireYear, cvv)
@@ -438,7 +432,7 @@ def deleteItem(item_id: int):
 #             db.session.delete(i)
 #         db.session.commit()
 #         return redirect('/')
-#
+
 #     return render_template('checkOut.html', user_id=user_id, checkOutCart=checkOutCart, total=total)
 
 @app.route('/orders')
@@ -459,13 +453,39 @@ def info():
     return render_template('info.html')
 
 
-# @app.before_request
-# def before_request():
-#     g.user = None
-#     if 'user' in session:
-#         g.user = session['user']
-#         if 'is_authenticated' in session:
-#             g.role = session['is_authenticated']
+@app.before_request
+def before_request():
+    g.user = None
+    if 'user' in session:
+        g.user = session['user']
+        if 'is_authenticated' in session:
+            g.role = session['is_authenticated']
+
+def login_required(func):
+    @functools.wraps(func)
+    def secure_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login', next=request.url))
+
+        return func(*args, **kwargs)
+
+    return secure_function
+
+files_index = AutoIndex(app, browse_root=os.path.curdir , add_url_rules=False)
+
+
+# Custom indexing
+@app.route('/dir')
+@app.route('/dir/<path:path>')
+@login_required
+def autoindex(path='.'):
+    if g.user:
+        if 'user' in session:
+            # if session['user'] == 'admin@toilet.org': #admin needs to change pass/new email also
+            if session['is_authenticated'] == 'True':
+                return files_index.render_autoindex(path)
+            else:
+                abort(403)
 
 @app.route("/logout")
 def logout():
@@ -504,24 +524,24 @@ def register():
             last_name = request.form['last_name']
             password = request.form['password']
             email = request.form['email']
-            # print("Password:",password) ##prevention
-            # if len(password) < 8:
-            #     msg = 'Error: Password is too short!'
-            #     return render_template('register.html', form=form, msg=msg)
-            #
-            # elif not any(char.isdigit() for char in password):
-            #     msg = 'Error: Password must contain a digit!'
-            #     return render_template('register.html', form=form, msg=msg)
-            #
-            # elif not any(char.isupper() for char in password):
-            #     msg = 'Error: Password must contain uppercase!'
-            #     return render_template('register.html', form=form, msg=msg)
-            #
-            # elif not re.search("[$#@]",password):
-            #     msg = "Error: Password must contain unique characters!"
-            #     return render_template('register.html', form=form, msg=msg)
-            # # strength = password_check(password)
-            # # print(strength)
+            print("Password:",password) ##prevention
+            if len(password) < 8:
+                msg = 'Error: Password is too short!'
+                return render_template('register.html', form=form, msg=msg)
+
+            elif not any(char.isdigit() for char in password):
+                msg = 'Error: Password must contain a digit!'
+                return render_template('register.html', form=form, msg=msg)
+
+            elif not any(char.isupper() for char in password):
+                msg = 'Error: Password must contain uppercase!'
+                return render_template('register.html', form=form, msg=msg)
+
+            elif not re.search("[$#@]",password):
+                msg = "Error: Password must contain unique characters!"
+                return render_template('register.html', form=form, msg=msg)
+            # strength = password_check(password)
+            # print(strength)
             # session['user'] = request.form['email']
             # print("Test session:" ,session['user'])
             user = User(first_name=first_name,
@@ -539,25 +559,30 @@ def register():
 
 @app.route('/admin_info', methods=['GET'])
 def admin_info():
-     # if g.user:
-    if 'user' in session:
-            #only admin can access
-        if session['is_authenticated'] == 'True':
-             ##insert admin page here
-            #follow this format for all admin def
-            print("ADMIN PAGE")
-            user_list = User.query.all()
-            result = users_schema.dump(user_list)
-            return jsonify(result)
-        else:
-            abort(403)
-    else:
-        abort(403)
+     if g.user:
+        if 'user' in session:
+                #only admin can access
+            if session['is_authenticated'] == 'True':
+                 ##insert admin page here
+                #follow this format for all admin def
+                print("ADMIN PAGE")
+                user_list = User.query.all()
+                result = users_schema.dump(user_list)
+                return jsonify(result)
+
+     else:
+         abort(403)
                 #for admin access only
 
-@app.route('/admin')
+@app.route('/getpagenimda')
 def admin():
-    return render_template('admin.html')
+    if 'user' in session:
+        if session['is_authenticated'] == 'True':
+            return render_template('admin.html')
+        else:
+            abort(401)
+    else:
+        abort(401)
     # if g.user:
     #     if 'user' in session:
     #         # if session['user'] == 'admin@toilet.org':
@@ -592,6 +617,7 @@ def login():
         password = request.form['password']
         print(email)
         print(password)
+
         # fix
         #1st method for login
         statement = text('SELECT * FROM users WHERE email = :a AND password = :b')
@@ -610,21 +636,8 @@ def login():
         # result = db.engine.execute(statement).fetchone()
         # endfix
         if result == None:
-            statement2 = text('SELECT * FROM users WHERE email =:e')
-            result2 = db.engine.execute(statement2,e=str(email)).fetchone()
-            print(result2)
-            print("AHhhhhhhhhhhhh")
-            print(email)
-            if result2 == None:
-                msg = 'Error: Email does not exist!'
-                print('no mail')
-                return render_template("login.html", form=form, msg=msg),401
-                # abort(401)
-            else:
-                msg = 'Error: Password is wrong!'
-                print('no pass')
-                return render_template("login.html", form=form, msg=msg),401
-                # abort(401)
+            msg = 'Error: Email/Password does not exist!'
+            return render_template("login.html", form=form, msg=msg),401
 
         else:
             session['id'] = result[0]
@@ -646,8 +659,6 @@ def login():
     return render_template("login.html", form=form, msg=msg)
         # return jsonify(message='Bad email or password'), 401
 
-#below only works on pythonanywhere!
-#dont delete zz
 @app.route('/forgotpassword', methods=['GET','POST'])
 def forgot():
     form = ResetForm(request.form)
@@ -658,23 +669,23 @@ def forgot():
         user = User.query.filter_by(email=email).first()
         if user:
                 msg1 = 'Email has been sent!' #bad error message
-#                 sent = MIMEText('Your API password is ' + user.password)
-#                 sent['Subject'] = "Retrieve Password "
-#                 sent['From'] = 'Toilet Admin <admin@toilet.org>'
-#                 sent['To'] = 'User <readan999@gmail.com>'
-#
-#                 server = smtplib.SMTP("smtp.gmail.com:587")
-#                 server.starttls()
-#                 server.login("readan999@gmail.com", "wrsshovpluevyelj")
-#
-#
-#                 # sent = Message("your API password is " + user.password,
-#                 #       sender="admin@aspj-api.com",
-#                 #       recipients=[email])
-#                 # mail.send(sent)
-#                 # server.sendmail("admin@toilet.org", email, sent.as_string())
-#                 server.sendmail("admin@toilet.org", "readan999@gmail.com", sent.as_string())
-#                 server.quit()
+                sent = MIMEText('Your API password is ' + user.password)
+                sent['Subject'] = "Retrieve Password "
+                sent['From'] = 'Toilet Admin <admin@toilet.org>'
+                sent['To'] = 'User <readan999@gmail.com>'
+
+                server = smtplib.SMTP("smtp.gmail.com:587")
+                server.starttls()
+                server.login("readan999@gmail.com", "wrsshovpluevyelj")
+
+
+                # sent = Message("your API password is " + user.password,
+                #       sender="admin@aspj-api.com",
+                #       recipients=[email])
+                # mail.send(sent)
+                # server.sendmail("admin@toilet.org", email, sent.as_string())
+                server.sendmail("admin@toilet.org", "readan999@gmail.com", sent.as_string())
+                server.quit()
                 return render_template("forgot.html",form=form, msg=msg1)
 #
         else:
@@ -711,7 +722,7 @@ def cust_details(cust_id: int):
     result = db.engine.execute(statement,c=str(cust_id)).fetchone()
     if result == None:
         abort(401)
-        # return redirect('/')
+        return redirect('/')
     else:
         print(result)
         id = result[0]
@@ -719,10 +730,10 @@ def cust_details(cust_id: int):
         email = result[3]
         password = result[4]
         return render_template('info.html',id=id,name=name,email=email,password=password)
-@app.errorhandler(401)
-def page_not_foundd(e):
-    return redirect('/')
+
+
+
 
 if __name__ == '__main__':
-        app.run(debug=True)
+        app.run()
     # app.run(debug=True, host="127.0.0.1", port=80)
