@@ -18,7 +18,8 @@ from flask import json
 from werkzeug.exceptions import HTTPException
 import functools
 from datetime import timedelta
-
+from email.mime.text import MIMEText
+import smtplib
 
 
 app = Flask(__name__)
