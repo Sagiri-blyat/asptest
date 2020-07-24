@@ -695,9 +695,9 @@ def forgot():
     return render_template('forgot.html', form=form)
 
 
-@app.route('/account/<int:id>',methods=['GET', 'POST','PUT'])
-def account(id: int):
-    id = str(id)
+@app.route('/account',methods=['GET', 'POST','PUT'])
+def account():
+    id = str(session['id'])
     statement = text('SELECT * FROM users WHERE id =:i')
     result = db.engine.execute(statement,i = id).fetchone()
     print(result.email)
